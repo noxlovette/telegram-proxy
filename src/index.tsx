@@ -1,5 +1,5 @@
 import Bun from "bun";
-import { TelegramClient } from 'telegram';
+import { TelegramClient, sessions } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 
 const SESSION = new StringSession('');
@@ -19,7 +19,10 @@ const server = Bun.serve({
 try {
 await client.connect();
 await client.sendCode({apiId: API_ID, apiHash: API_HASH}, phoneNumber);
-return new Response("Code Sent")
+return new Response(JSON.stringify({ message: "Code Sent" }), {
+  headers: { "Content-Type": "application/json" },
+});
+
 } catch (error) {
   console.error("Error sending code: ", error);
   return new Response("Error", {status: 500});
@@ -37,6 +40,7 @@ if (path ==="/start-client" && req.method === "POST") {
     await client.sendMessage('me', {message: "WE ARE IN"});
 
     const savedSession = client.session.save();
+    client.disconnect();
 
   return new Response(JSON.stringify(savedSession), {
   headers: {"Content-Type": "application/json"},
@@ -47,9 +51,35 @@ if (path ==="/start-client" && req.method === "POST") {
   }
 }
 
+
+    if (path === "/send-message" && req.method === "POST") {
+      console.log("Sending message");
+      const { message, sessionString, userId } = await req.json();
+      console.log("Message: ", message);  
+      console.log("Session: ", sessionString);
+      try {
+        const newSESSION = new StringSession(sessionString);
+        const savedClient = new TelegramClient(newSESSION, API_ID, API_HASH, {connectionRetries: 5})
+        await savedClient.connect();
+        
+        await savedClient.sendMessage(`${userId}`, {message});
+        return new Response(JSON.stringify({ message: "Message sent" }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Error sending message: ", error);
+        return new Response("Error", { status: 500 });
+      }
+    }
+
     // Respond with other routes
     if (path === "/") {
       return new Response("Welcome to Bun!");
+    }
+
+    if (path === "/disconnect") {
+      client.disconnect();
+      return new Response("Disconnected");
     }
 
     // Handle other routes or return 404
