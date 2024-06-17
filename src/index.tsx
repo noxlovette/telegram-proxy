@@ -19,6 +19,7 @@ const server = Bun.serve({
 try {
 await client.connect();
 await client.sendCode({apiId: API_ID, apiHash: API_HASH}, phoneNumber);
+
 return new Response(JSON.stringify({ message: "Code Sent" }), {
   headers: { "Content-Type": "application/json" },
 });
@@ -29,50 +30,53 @@ return new Response(JSON.stringify({ message: "Code Sent" }), {
 }
 }
 if (path ==="/start-client" && req.method === "POST") {
-  const {phoneNumber, phoneCode} = await req.json();
+  const {phoneNumber, phoneCode, password} = await req.json();
 
   try {
     await client.start({
-      phoneNumber,
+      phoneNumber: async () => phoneNumber,
+      password: async () => password || undefined,
       phoneCode: async () => phoneCode, 
-      onError: (err) => console.log("Error logging in: ", err)
+      onError: () => {}
     });
-    await client.sendMessage('me', {message: "WE ARE IN"});
-
     const savedSession = client.session.save();
     client.disconnect();
 
-  return new Response(JSON.stringify(savedSession), {
+    return new Response(JSON.stringify({message: "Logged in!", savedSession: savedSession}), {
   headers: {"Content-Type": "application/json"},
 });
   } catch (error) {
+    if (error.message === "PHONE_PASSWORD_PROTECTED") {
+      return new Response(JSON.stringify({message: "Password required"}), {
+        headers: {"Content-Type": "application/json"},
+      });
+    }
     console.log("Error starting client: ", error);
-    return new Response("Error", {status: 500});
+    return new Response("Error", {status: error.status || 500});
   }
 }
 
+if (path === "/password-protected" && req.method === "POST") {
+  const {phoneNumber, password, phoneCode} = await req.json();
+  try {
+    await client.start({
+      phoneNumber: async () => phoneNumber,
+      password: async () => password,
+      phoneCode: async () => phoneCode,
+      onError: () => {}
+    });
+    const savedSession = client.session.save();
+    client.disconnect();
 
-    if (path === "/send-message" && req.method === "POST") {
-      console.log("Sending message");
-      const { message, sessionString, userId } = await req.json();
-      console.log("Message: ", message);  
-      console.log("Session: ", sessionString);
-      try {
-        const newSESSION = new StringSession(sessionString);
-        const savedClient = new TelegramClient(newSESSION, API_ID, API_HASH, {connectionRetries: 5})
-        await savedClient.connect();
-        
-        await savedClient.sendMessage(`${userId}`, {message});
-        return new Response(JSON.stringify({ message: "Message sent" }), {
-          headers: { "Content-Type": "application/json" },
-        });
-      } catch (error) {
-        console.error("Error sending message: ", error);
-        return new Response("Error", { status: 500 });
-      }
-    }
+    return new Response(JSON.stringify({message: "Logged in!", savedSession: savedSession}), {
+      headers: {"Content-Type": "application/json"},
+    });
+  } catch (error) {
+    console.log("Error starting client: ", error);
+    return new Response("Error", {status: error.status || 500});
+  }
+}
 
-    // Respond with other routes
     if (path === "/") {
       return new Response("Welcome to Bun!");
     }
@@ -82,7 +86,6 @@ if (path ==="/start-client" && req.method === "POST") {
       return new Response("Disconnected");
     }
 
-    // Handle other routes or return 404
     return new Response("Page not found", { status: 404 });
   },
 });
