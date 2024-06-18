@@ -1,5 +1,8 @@
 # telegram-proxy
 
+This proxy server authenticates a user on Telegram. 
+To begin, define your api_id and api_hash, obtainable here: https://my.telegram.org
+
 To install dependencies:
 
 ```bash
@@ -12,4 +15,4 @@ To run:
 bun run index.ts
 ```
 
-This project was created using `bun init` in bun v1.1.12. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Buns to everyone! Enjoy.
