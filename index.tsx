@@ -49,6 +49,8 @@ const server = Bun.serve({
 
         const savedSession = client.session.save();
 
+        await client.disconnect();
+
         return new Response(
           JSON.stringify({ message: "Logged in!", savedSession: savedSession }),
           {
