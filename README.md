@@ -6,13 +6,16 @@ To begin, define your api_id and api_hash, obtainable here: https://my.telegram.
 To install dependencies:
 
 ```bash
-bun install
+npm install
+```
+
+To build:
+
+```bash
+npx tsc
 ```
 
 To run:
-
 ```bash
-bun run index.ts
+node dist/server.js
 ```
-
-Buns to everyone! Enjoy.
