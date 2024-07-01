@@ -31,7 +31,7 @@ app.post('/send-code', async (req: Request, res: Response) => {
         { apiId: API_ID, apiHash: API_HASH },
         phoneNumber
       );
-
+      await client.disconnect();
       res.json({ message: "Code Sent" });
       return;
     } catch (error) {
@@ -51,6 +51,7 @@ app.post('/start-client', async (req: Request, res: Response) => {
 
   while (true) {
     try {
+      await client.connect();
       await client.start({
         phoneNumber: async () => phoneNumber,
         password: async () => password || "",
